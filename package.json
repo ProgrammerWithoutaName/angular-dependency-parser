@@ -1,0 +1,29 @@
+{
+  "name": "angular-dependency-parser",
+  "version": "0.0.1",
+  "description": "Parse Angular Dependency trees",
+  "main": "index.js",
+  "scripts": {
+    "test": "test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ProgrammerWithoutaName/angular-dependency-parser.git"
+  },
+  "keywords": [
+    "angular"
+  ],
+  "author": "ProgrammerWithoutAName",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/ProgrammerWithoutaName/angular-dependency-parser/issues"
+  },
+  "homepage": "https://github.com/ProgrammerWithoutaName/angular-dependency-parser#readme",
+  "devDependencies": {
+    "jasmine": "^2.3.2",
+    "proxyquire": "^1.7.3"
+  },
+  "dependencies": {
+    "fs-promise": "^0.3.1"
+  }
+}
