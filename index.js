@@ -1,58 +1,78 @@
 'use strict';
 const path = require('path');
 const FolderLoader = require('./lib/dependencyTree/fileIteration/FolderLoader');
-const deindent = require('./lib/deindent');
 const ModuleMap = require('./lib/dependencyTree/ModuleMap');
-let DependencyLinker = require('./lib/dependencyTree/DependencyLinker');
-let LoadTracker = require('./lib/dependencyTree/fileIteration/LoadTracker');
+const DependencyLinker = require('./lib/dependencyTree/DependencyLinker');
+const PromiseTracker = require('multi-promise');
 
 function convertProjects(directories) {
     let moduleMap = new ModuleMap();
-    let loadTracker = new LoadTracker();
+    let promiseTracker = new PromiseTracker();
+    console.log('starting project');
 
     return new Promise( (resolve, reject) => {
-        loadTracker.promise.then(() => resolve(moduleMap), reject);
+        promiseTracker.promise.then(() => {
+            console.log('starting link');
+            let dependencyLinker = new DependencyLinker(moduleMap);
+
+            dependencyLinker.linkComponentDependencies();
+            dependencyLinker.linkModuleDependencies();
+
+            console.log('linking complete');
+            resolve(moduleMap);
+        }, reject).catch(reject);
+
         directories.forEach(directory => {
+
             if(directory.individualScripts) {
-                loadIndividualScripts(directory, loadTracker, moduleMap);
+                loadIndividualScripts(directory, promiseTracker, moduleMap);
             } else {
-                loadProject(directory, loadTracker, moduleMap);
+                loadProject(directory, promiseTracker, moduleMap);
             }
         });
-        loadTracker.loadingAll = false;
+
+        console.log('done setting folder loaders.');
+        promiseTracker.allPromisesGiven = true;
     });
 }
 
-function loadProject(directory, loadTracker, moduleMap) {
+function loadProject(directory, promiseTracker, moduleMap) {
     directory.moduleMap = moduleMap;
+    console.log(`parsing Folder: ${directory.folderPath}`);
+    if(directory.tags.trackNonScriptFiles) {
+        moduleMap.nonScriptFiles[directory.tags.baseFolder] = {
+            tags: directory.tags,
+            folderItems: []
+        };
+        directory.onNonScriptFile = folderItem => moduleMap.nonScriptFiles[directory.tags.baseFolder].folderItems.push(folderItem);
+    }
+
     let folderLoader = new FolderLoader(directory);
-    let loadComplete = loadTracker.generateLoadResults(folderLoader);
+    let loadComplete = promiseTracker.generatePromiseAttachment(folderLoader.loadAll(), true);
+    let loadError =(error) => {
+        throw new Error(`Error for ${directory.folderPath}, error: ${error}`);
+    };
 
-    folderLoader.loadAll().then(loadComplete, (error) => {
-        throw new Error(`Error for ${directory.folderPath}, error: ${error}`);
-    }).catch(error => {
-        throw new Error(`Error for ${directory.folderPath}, error: ${error}`);
-    });
+    loadComplete.then(() => {}, loadError).catch(loadError);
 }
 
-function loadIndividualScripts(directory, loadTracker, moduleMap) {
-    directory.filePaths.forEach(path => loadSingleScript(path, directory.tags, loadTracker, moduleMap));
+function loadIndividualScripts(directory, promiseTracker, moduleMap) {
+    directory.filePaths.forEach(path => loadSingleScript(path, directory.tags, promiseTracker, moduleMap));
 }
 
-function loadSingleScript(script, tags, loadTracker, moduleMap) {
+function loadSingleScript(script, tags, promiseTracker, moduleMap) {
+    console.log(`parsing Script: ${script}`);
     let folderLoader = new FolderLoader({
         folderPath: script,
         moduleMap,
         tags
     });
 
-    let loadComplete = loadTracker.generateLoadResults(folderLoader);
-
-    folderLoader.loadAll().then(loadComplete, (error) => {
+    let loadComplete = promiseTracker.generatePromiseAttachment(folderLoader.loadAll(), true);
+    let loadError = (error) => {
         throw new Error(`Error for ${script}, error: ${error}`);
-    }).catch(error => {
-        throw new Error(`Error for ${script}, error: ${error}`);
-    });
+    };
+    loadComplete.then(()=>{}, loadError).catch(loadError);
 }
 
-module.exports = { convertProjects }
+module.exports = { convertProjects };
