@@ -25,6 +25,6 @@
   },
   "dependencies": {
     "fs-promise": "^0.3.1",
-    "multi-promise": "../multi-promise"
+    "multi-promise": "git://github.com/programmerWithoutAName/multi-promise"
   }
 }
