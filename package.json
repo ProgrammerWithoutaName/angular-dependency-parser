@@ -24,7 +24,9 @@
     "proxyquire": "^1.7.3"
   },
   "dependencies": {
+    "esprima": "^2.7.2",
     "fs-promise": "^0.3.1",
-    "multi-promise": "../multi-promise"
+    "js-string-escape": "^1.0.1",
+    "mock-browser": "^0.92.11"
   }
 }
